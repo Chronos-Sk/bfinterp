@@ -1,0 +1,6 @@
+build --cxxopt=-std=c++17 --cxxopt=-Wall
+
+build --cxxopt=-Wimplicit-fallthrough=5 --cxxopt=-Wignored-qualifiers
+build --cxxopt=-Wtype-limits --cxxopt=-Wmissing-declarations
+
+try-import user.bazelrc
