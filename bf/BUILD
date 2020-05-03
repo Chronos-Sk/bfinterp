@@ -1,5 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
+package(default_visibility = ["//:__subpackages__"])
+
 cc_binary(
     name = "bf",
     srcs = ["main.cc"],
