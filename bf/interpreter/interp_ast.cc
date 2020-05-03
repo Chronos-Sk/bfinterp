@@ -21,18 +21,19 @@ struct Context {
 
 void InterpAst_rec(const NodeContainer& container, Context* context) {
   for (const auto& node : container.children()) {
+    const auto mem_target = context->mem_ptr + node.offset();
     switch (node.type()) {
       case NodeType::Move:
         context->mem_ptr += static_cast<const ast::Move&>(node).distance();
         break;
       case NodeType::Add:
-        *context->mem_ptr += static_cast<const ast::Add&>(node).amount();
+        *mem_target += static_cast<const ast::Add&>(node).amount();
         break;
       case NodeType::Output:
-        std::putchar(*context->mem_ptr);
+        std::putchar(*mem_target);
         break;
       case NodeType::Input:
-        *context->mem_ptr = std::getchar();
+        *mem_target = std::getchar();
         break;
       case NodeType::Loop:
         while (*context->mem_ptr) {
@@ -40,11 +41,11 @@ void InterpAst_rec(const NodeContainer& container, Context* context) {
         }
         break;
       case NodeType::Set:
-        *context->mem_ptr = static_cast<const ast::Set&>(node).value();
+        *mem_target = static_cast<const ast::Set&>(node).value();
         break;
       case NodeType::AddMul: {
         const ast::AddMul& addmul = static_cast<const ast::AddMul&>(node);
-        *(context->mem_ptr + addmul.offset()) += *context->mem_ptr * addmul.multiplier();
+        *mem_target += *context->mem_ptr * addmul.multiplier();
         break;
       }
       default:

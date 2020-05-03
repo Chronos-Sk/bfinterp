@@ -37,7 +37,7 @@ using NodeList = PolyList<Node>;
 class Node {
  public:
   // Parent takes ownership, if not null.
-  Node(NodeContainer* parent = nullptr);
+  Node(int offset) : offset_(offset) {}
 
   // Not copyable or movable, to avoid slicing.
   Node(const Node&) = delete;
@@ -55,6 +55,7 @@ class Node {
   bool first() const { return this == &siblings().front(); }
   bool last() const { return this == &siblings().back(); }
 
+  int offset() const { return offset_; }
   virtual NodeType type() const = 0;
 
   void Reparent(NodeContainer* new_parent);
@@ -65,11 +66,9 @@ class Node {
   
   virtual NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) = 0;
 
-  virtual bool operator==(const Node& other) const = 0;
-  bool operator!=(const Node& other) const { return !(*this == other); } 
-
  private:
-  NodeContainer* parent_;
+  NodeContainer* parent_ = nullptr;
+  const int offset_;
 
   void set_parent(NodeContainer* new_parent) { parent_ = new_parent; }
 
@@ -78,16 +77,14 @@ class Node {
 
 class NodeContainer : public Node {
  public:
-  using Node::Node;
-  NodeContainer(NodeList children, NodeContainer* parent = nullptr);
+  NodeContainer() : Node(0) {}
+  NodeContainer(NodeList children);
 
   NodeList& children() { return children_; }
   const NodeList& children() const { return children_; }
 
   Node* Add(std::unique_ptr<Node> node);
   Node* Insert(NodeList::iterator before, std::unique_ptr<Node> node);
-
-  bool operator==(const Node& other) const override { return this == &other; }
 
   template <typename V>
   [[nodiscard]] std::unique_ptr<V> Remove(V* node) {
@@ -104,7 +101,7 @@ namespace ast {
 
 class Tree final : public NodeContainer {
  public:
-  Tree() : NodeContainer(nullptr) {}
+  Tree() : NodeContainer() {}
   explicit Tree(NodeList children) : NodeContainer(std::move(children)) {}
 
   NodeType type() const { return NodeType::Tree; }
@@ -114,15 +111,13 @@ class Tree final : public NodeContainer {
 
 class Move final : public Node {
  public:
-  explicit Move(int distance, NodeContainer* parent = nullptr)
-      : Node(parent), distance_(distance) {}
+  explicit Move(int distance) : Node(0), distance_(distance) {}
 
   int distance() const { return distance_; }
 
   NodeType type() const { return NodeType::Move; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override;
 
  private:
   const int distance_;
@@ -130,15 +125,14 @@ class Move final : public Node {
 
 class Add final : public Node {
  public:
-  explicit Add(int amount, NodeContainer* parent = nullptr)
-      : Node(parent), amount_(amount) {}
+  explicit Add(int amount, int offset = 0)
+      : Node(offset), amount_(amount) {}
 
   int amount() const { return amount_; }
 
   NodeType type() const { return NodeType::Add; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override;
 
  private:
   const int amount_;
@@ -146,30 +140,26 @@ class Add final : public Node {
 
 class Output final : public Node {
  public:
-  explicit Output(NodeContainer* parent = nullptr) : Node(parent) {}
+  explicit Output(int offset = 0) : Node(offset) {}
   
   NodeType type() const { return NodeType::Output; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override { return type() == other.type(); }
 };
 
 class Input final : public Node {
  public:
-  explicit Input(NodeContainer* parent = nullptr) : Node(parent) {}
+  explicit Input(int offset = 0) : Node(offset) {}
 
   NodeType type() const { return NodeType::Input; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override { return type() == other.type(); }
 };
 
 class Loop final : public NodeContainer {
  public:
-  explicit Loop(NodeContainer* parent = nullptr)
-      : NodeContainer(parent) {}
-  explicit Loop(NodeList children, NodeContainer* parent = nullptr)
-      : NodeContainer(std::move(children), parent) {}
+  explicit Loop() : NodeContainer() {}
+  explicit Loop(NodeList children) : NodeContainer(std::move(children)) {}
 
   NodeType type() const { return NodeType::Loop; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
@@ -178,15 +168,13 @@ class Loop final : public NodeContainer {
 
 class Set final : public Node {
  public:
-  explicit Set(int value, NodeContainer* parent = nullptr)
-      : Node(parent), value_(value) {}
+  explicit Set(int value, int offset = 0) : Node(offset), value_(value) {}
 
   int value() const { return value_; }
 
   NodeType type() const { return NodeType::Set; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override;
 
  private:
   const int value_;
@@ -194,19 +182,15 @@ class Set final : public Node {
 
 class AddMul final : public Node {
  public:
-  explicit AddMul(int offset, int multiplier, NodeContainer* parent = nullptr)
-      : Node(parent), offset_(offset), multiplier_(multiplier) {}
+  explicit AddMul(int offset, int multiplier) : Node(offset), multiplier_(multiplier) {}
 
-  int offset() const { return offset_; }
   int multiplier() const { return multiplier_; }
 
   NodeType type() const { return NodeType::AddMul; }
   void DebugStringPart(std::stringstream* buffer, int indent) const override;
   NodeList::iterator Accept(NodeVisitor* visitor, NodeList::iterator iter) override;
-  bool operator==(const Node& other) const override;
 
  private:
-  const int offset_;
   const int multiplier_;
 };
 

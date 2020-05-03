@@ -4,14 +4,6 @@
 
 namespace dev::spiralgerbil::bf {
 
-Node::Node(NodeContainer* parent) {
-  if (parent != nullptr) {
-    parent->Add(std::unique_ptr<Node>(this));
-  } else {
-    parent_ = nullptr;
-  }
-}
-
 NodeList& Node::siblings() {
   CHECK(parent_ != nullptr);
   return parent_->children();
@@ -37,8 +29,8 @@ std::string Node::DebugString() const {
   return std::move(buffer).str();
 }
 
-NodeContainer::NodeContainer(NodeList children, NodeContainer* parent)
-    : NodeContainer(parent) {
+NodeContainer::NodeContainer(NodeList children)
+    : Node(0) {
   for (auto& node : children) {
     CHECK(node.parent() == nullptr);
     node.set_parent(this);
@@ -89,15 +81,17 @@ void Move::DebugStringPart(std::stringstream* buffer, int indent) const {
 
 void Add::DebugStringPart(std::stringstream* buffer, int indent) const {
   IndentPrint(buffer, indent, "Add ");
-  *buffer << amount();
+  *buffer << offset() << " " << amount();
 }
 
 void Output::DebugStringPart(std::stringstream* buffer, int indent) const {
-  IndentPrint(buffer, indent, "Output");
+  IndentPrint(buffer, indent, "Output ");
+  *buffer << offset();
 }
 
 void Input::DebugStringPart(std::stringstream* buffer, int indent) const {
-  IndentPrint(buffer, indent, "Input");
+  IndentPrint(buffer, indent, "Input ");
+  *buffer << offset();
 }
 
 void Loop::DebugStringPart(std::stringstream* buffer, int indent) const {
@@ -108,7 +102,7 @@ void Loop::DebugStringPart(std::stringstream* buffer, int indent) const {
 
 void Set::DebugStringPart(std::stringstream* buffer, int indent) const {
   IndentPrint(buffer, indent, "Set ");
-  *buffer << value();
+  *buffer << offset() << " " << value();
 }
 
 void AddMul::DebugStringPart(std::stringstream* buffer, int indent) const {
@@ -128,26 +122,6 @@ NodeList::iterator Input::Accept(NodeVisitor* visitor, NodeList::iterator iter) 
 NodeList::iterator Loop::Accept(NodeVisitor* visitor, NodeList::iterator iter) { return visitor->Visit(this, iter); }
 NodeList::iterator Set::Accept(NodeVisitor* visitor, NodeList::iterator iter) { return visitor->Visit(this, iter); }
 NodeList::iterator AddMul::Accept(NodeVisitor* visitor, NodeList::iterator iter) { return visitor->Visit(this, iter); }
-
-bool Move::operator==(const Node& other) const {
-  return type() == other.type() && distance() == static_cast<const Move&>(other).distance();
-}
-
-bool Add::operator==(const Node& other) const {
-  return type() == other.type() && amount() == static_cast<const Add&>(other).amount();
-}
-
-bool Set::operator==(const Node& other) const {
-  return type() == other.type() && value() == static_cast<const Set&>(other).value();
-}
-
-bool AddMul::operator==(const Node& other) const {
-  if (type() != other.type()) {
-    return false;
-  }
-  const AddMul& addmul = static_cast<const AddMul&>(other);
-  return offset() == addmul.offset() && multiplier() == addmul.multiplier();
-}
 
 }  // namespace ast
 

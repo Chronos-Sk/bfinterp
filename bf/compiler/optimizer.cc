@@ -10,6 +10,7 @@ void Optimize(ast::Tree* program) {
   RemoveImpossibleLoops(program);
   CollapseClearLoops(program);
   CollapseAddMulLoops(program);
+  ConvertToOffsets(program);
 }
 
 void RemoveImpossibleLoops(ast::Tree* tree) {
@@ -55,6 +56,7 @@ void CollapseAddMulLoops(ast::Tree* tree) {
   class : public NodeVisitor {
    public:
     using NodeVisitor::Visit;
+
     NodeList::iterator Visit(ast::Loop* node, NodeList::iterator iter) override {
       if (AttemptReplace(node, iter)) {
         VisitChildren(node);
@@ -96,6 +98,70 @@ void CollapseAddMulLoops(ast::Tree* tree) {
     }
   } visitor;
   visitor.Visit(tree);
+}
+
+void ConvertToOffsets(ast::Tree* tree) {
+  class OffsetVisitor : public NodeVisitor {
+   public:
+    using NodeVisitor::Visit;
+
+    NodeList::iterator Visit(ast::Move* node, NodeList::iterator iter) override {
+      current_offset += node->distance();
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::Add* node, NodeList::iterator iter) override {
+      replacement.emplace_back<ast::Add>(node->amount(), current_offset);
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::Output* node, NodeList::iterator iter) override {
+      replacement.emplace_back<ast::Output>(current_offset);
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::Input* node, NodeList::iterator iter) override {
+      replacement.emplace_back<ast::Input>(current_offset);
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::Loop* node, NodeList::iterator iter) override {
+      if (current_offset != 0) {
+        replacement.emplace_back<ast::Move>(current_offset);
+        current_offset = 0;
+      }
+      OffsetVisitor visitor;
+      visitor.VisitChildren(node);
+      replacement.emplace_back<ast::Loop>(visitor.Build());
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::Set* node, NodeList::iterator iter) {
+      replacement.emplace_back<ast::Set>(node->value(), current_offset);
+      return iter;
+    }
+
+    NodeList::iterator Visit(ast::AddMul* node, NodeList::iterator iter) {
+      replacement.emplace_back<ast::AddMul>(node->offset(), node->multiplier());
+      return iter;
+    }
+
+    NodeList Build() {
+      if (current_offset != 0) {
+        replacement.emplace_back<ast::Move>(current_offset);
+        current_offset = 0;
+      }
+      NodeList other;
+      other.swap(replacement);
+      return other;
+    }
+
+   private:
+    NodeList replacement;
+    int current_offset = 0;
+  } visitor;
+  visitor.Visit(tree);
+  tree->children() = visitor.Build();
 }
 
 }  // dev::spiralgerbil::bf

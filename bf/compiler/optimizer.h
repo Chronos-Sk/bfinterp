@@ -12,6 +12,7 @@ void Optimize(ast::Tree* program);
 void CollapseClearLoops(ast::Tree* tree);
 void RemoveImpossibleLoops(ast::Tree* tree);
 void CollapseAddMulLoops(ast::Tree* tree);
+void ConvertToOffsets(ast::Tree* tree);
 
 }  // dev::spiralgerbil::bf
 
