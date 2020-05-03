@@ -139,6 +139,7 @@ void ConvertToOffsets(ast::Tree* tree) {
     }
 
     NodeList::iterator Visit(ast::AddMul* node, NodeList::iterator iter) {
+      FlushOffset();
       replacement.emplace_back<ast::AddMul>(node->offset(), node->multiplier());
       return iter;
     }
