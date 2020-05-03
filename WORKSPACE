@@ -11,7 +11,7 @@ new_git_repository(
     name = "glog",
     branch = "master",
     remote = "https://github.com/google/glog.git",
-    build_file = "@//:glog.BUILD",
+    build_file = "@//external:glog.BUILD",
 )
 
 http_archive(
