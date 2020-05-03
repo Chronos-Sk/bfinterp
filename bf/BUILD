@@ -15,12 +15,3 @@ cc_binary(
         "@glog",
     ],
 )
-
-cc_binary(
-    name = "hello",
-    srcs = ["hello.cc"],
-    deps = [
-        "@absl//absl/flags:flag",
-        "@absl//absl/flags:parse",
-    ],
-)

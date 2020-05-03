@@ -126,10 +126,7 @@ void ConvertToOffsets(ast::Tree* tree) {
     }
 
     NodeList::iterator Visit(ast::Loop* node, NodeList::iterator iter) override {
-      if (current_offset != 0) {
-        replacement.emplace_back<ast::Move>(current_offset);
-        current_offset = 0;
-      }
+      FlushOffset();
       OffsetVisitor visitor;
       visitor.VisitChildren(node);
       replacement.emplace_back<ast::Loop>(visitor.Build());
@@ -147,10 +144,7 @@ void ConvertToOffsets(ast::Tree* tree) {
     }
 
     NodeList Build() {
-      if (current_offset != 0) {
-        replacement.emplace_back<ast::Move>(current_offset);
-        current_offset = 0;
-      }
+      FlushOffset();
       NodeList other;
       other.swap(replacement);
       return other;
@@ -159,6 +153,13 @@ void ConvertToOffsets(ast::Tree* tree) {
    private:
     NodeList replacement;
     int current_offset = 0;
+
+    void FlushOffset() {
+      if (current_offset != 0) {
+        replacement.emplace_back<ast::Move>(current_offset);
+        current_offset = 0;
+      }
+    }
   } visitor;
   visitor.Visit(tree);
   tree->children() = visitor.Build();
